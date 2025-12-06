@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Classification System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- Professional CSS Styles --- */
+        :root {
+            --primary-color: #1976D2; /* Deep Blue for professionalism */
+            --secondary-color: #388E3C; /* Green for success */
+            --background-color: #f8f9fa; /* Light Gray Background */
+            --card-background: #ffffff;
+            --shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            --font: 'Roboto', sans-serif;
+        }
+
+        body {
+            font-family: var(--font);
+            background-color: var(--background-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: #343a40; /* Darker text */
+        }
+
+        .container {
+            background-color: var(--card-background);
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            width: 90%;
+            max-width: 550px;
+            text-align: center;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 30px;
+            font-weight: 500;
+            font-size: 1.8em;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .custom-file-upload {
+            border: 2px dashed #ced4da;
+            display: block; /* Changed to block for full width */
+            padding: 20px;
+            cursor: pointer;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            transition: border-color 0.3s, background-color 0.3s;
+            background-color: #f1f3f5;
+        }
+
+        .custom-file-upload:hover {
+            border-color: var(--primary-color);
+            background-color: #e9ecef;
+        }
+        
+        #fileNameDisplay {
+            font-style: italic;
+            color: #6c757d;
+            margin-bottom: 20px;
+        }
+
+        #submitBtn {
+            background-color: var(--secondary-color);
+            color: white;
+            width: 100%; /* Full width button */
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            transition: background-color 0.3s, box-shadow 0.3s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        #submitBtn:hover:not(:disabled) {
+            background-color: #2e7d32;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        #submitBtn:disabled {
+            background-color: #a5d6a7;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        #imagePreview {
+            max-width: 100%;
+            height: auto;
+            max-height: 300px;
+            margin: 20px auto;
+            border-radius: 6px;
+            object-fit: contain;
+            border: 1px solid #dee2e6; /* subtle border */
+            display: none;
+        }
+
+        #result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 6px;
+            background-color: #e3f2fd; /* Light blue result background */
+            text-align: left;
+            display: none;
+            border-left: 5px solid var(--primary-color); /* Highlight bar */
+        }
+
+        #result h2 {
+            color: var(--primary-color);
+            font-size: 1.2em;
+            margin-top: 0;
+            border-bottom: 1px solid #bbdefb;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+        
+        #result p {
+            margin: 5px 0;
+            font-size: 0.95em;
+        }
+        
+        #result strong {
+            display: inline-block;
+            width: 120px; /* Aligns the data points */
+            font-weight: 500;
+        }
+
+        .loading {
+            border: 4px solid #e0e0e0;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: none;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><span style="color: #6c757d;">AI-Powered</span> Image Classification</h1>
+        <form id="uploadForm">
+            <label for="fileInput" class="custom-file-upload">
+                <span style="font-size: 1.1em; font-weight: 500; color: #495057;">Select Image File</span>
+            </label>
+            <input type="file" id="fileInput" name="file" accept="image/*" required>
+            
+            <p id="fileNameDisplay">No file selected.</p>
+
+            <img id="imagePreview" src="#" alt="Image Preview">
+            
+            <button type="submit" id="submitBtn" disabled>Analyze Image</button>
+        </form>
+
+        <div class="loading" id="loadingIndicator"></div>
+
+        <div id="result">
+            <h2>Analysis Report</h2>
+            <p><strong>Input File:</strong> <span id="resFilename"></span></p>
+            <p><strong>Classification:</strong> <span id="resPrediction"></span></p>
+            <p><strong>Confidence:</strong> <span id="resConfidence"></span></p>
+        </div>
+    </div>
+
+    <script>
+        // --- JavaScript Logic (Functionally identical to original) ---
+        const fileInput = document.getElementById('fileInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const uploadForm = document.getElementById('uploadForm');
+        const imagePreview = document.getElementById('imagePreview');
+        const resultDiv = document.getElementById('result');
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        // URL of your FastAPI endpoint
+        const API_URL = "http://127.0.0.1:8000/predict"; 
+
+        // 1. Handle file selection and preview
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Show file name
+                fileNameDisplay.textContent = `File: ${file.name}`;
+                
+                // Show image preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+                
+                // Enable button
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Analyze Image'; // Reset button text
+                
+                // Hide previous results
+                resultDiv.style.display = 'none';
+            } else {
+                imagePreview.style.display = 'none';
+                submitBtn.disabled = true;
+                fileNameDisplay.textContent = "No file selected.";
+                submitBtn.textContent = 'Analyze Image';
+            }
+        });
+
+        // 2. Handle form submission (Prediction request)
+        uploadForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            // Prepare form data for the API
+            const formData = new FormData();
+            formData.append("file", file); // 'file' matches the parameter name in app.py
+
+            // Show loading and disable button
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...'; // Dynamic button text
+            loadingIndicator.style.display = 'block';
+            resultDiv.style.display = 'none';
+
+            try {
+                // Fetch request to the FastAPI endpoint
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API Error: ${response.status} - ${errorData.detail || response.statusText}`);
+                }
+
+                const data = await response.json();
+                
+                // 3. Display results
+                document.getElementById('resFilename').textContent = data.filename;
+                document.getElementById('resPrediction').textContent = data.prediction.toUpperCase();
+                document.getElementById('resConfidence').textContent = data.confidence;
+                
+                resultDiv.style.display = 'block';
+
+            } catch (error) {
+                console.error("Prediction failed:", error);
+                alert(`Error: ${error.message}. Please verify the FastAPI server is running at ${API_URL}`);
+            } finally {
+                // Hide loading and re-enable button
+                loadingIndicator.style.display = 'none';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Analyze Image'; // Restore button text
+            }
+        });
+    </script>
+</body>
+</html>
